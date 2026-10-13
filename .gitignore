@@ -1,0 +1,14 @@
+# datasets and training output (too big, and not mine to share)
+/data/
+/runs/
+
+# model files, only the final model is kept
+*.pt
+!models/best.pt
+
+__pycache__/
+.venv/
+venv/
+.vscode/
+.DS_Store
+Thumbs.db

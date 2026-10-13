@@ -1,0 +1,23 @@
+Kaggle test split (476 images with speed-limit signs)
+class            P      R   mAP50  mAP50-95
+speed_20     0.973  0.978   0.975     0.882
+speed_30     0.996  1.000   0.995     0.899
+speed_40     0.981  0.965   0.993     0.886
+speed_50     1.000  0.964   0.993     0.879
+speed_60     1.000  0.954   0.973     0.864
+speed_70     0.944  1.000   0.989     0.860
+speed_80     0.965  1.000   0.995     0.890
+speed_90     0.970  0.957   0.986     0.855
+speed_100    0.988  1.000   0.995     0.873
+speed_110    1.000  0.863   0.905     0.819
+speed_120    0.946  1.000   0.977     0.883
+all          0.978  0.971   0.980     0.872
+
+ArTS test images (top-1 accuracy, 78 images)
+class       accuracy  correct   most common error
+speed_30      100.0%    26/26   -
+speed_40       75.0%    12/16   speed_30 (x2)
+speed_50       83.3%    15/18   no detection (x1)
+speed_60       50.0%      1/2   speed_50 (x1)
+speed_80       68.8%    11/16   no detection (x2)
+overall        83.3%    65/78

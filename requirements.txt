@@ -1,0 +1,7 @@
+ultralytics>=8.4.0
+opencv-python>=4.8
+pyyaml>=6.0
+requests>=2.31
+
+# Trained on an RTX 5060 laptop GPU, which needed a PyTorch build that supports CUDA 12.8.
+# On other GPUs, any other version of PyTorch that ultralytics installs is fine.
