@@ -111,8 +111,6 @@ Some things to know:
 ## Ideas for later
 
 - Record my own photos and videos on UAE roads and label some of them to use as a proper test.
-- Add more examples of the speeds it misses most, and some signs with Arabic numerals.
-- Train YOLOv8n on the same data and compare it with YOLOv8s (I haven't done that).
 
 ## Files
 
