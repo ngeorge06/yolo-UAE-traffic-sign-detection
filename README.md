@@ -1,65 +1,65 @@
 # UAE Speed Limit Recognition
 
-A YOLOv8s model that finds speed limit signs and reads the number, plus an OpenCV program that runs it on a webcam and shows the current speed limit on screen.
+A hobby project that reads speed limit signs from a webcam. I trained a YOLOv8s model to find speed limit signs and read the number on them, then wrote a short OpenCV program that runs the model on the camera and shows the current speed limit on the screen.
 
-There is no labelled dataset of UAE signs, so I trained on three public datasets from other countries (the signs use the same design: red circle, black number, normal numerals) and tested on a Saudi dataset. It recognises 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 and 120 km/h.
+![inference.py running on recorded drive footage](results/demo-gif.gif)
+
+The demos on this page are the model running on a recorded drive video, not live driving.
+
+## How I made it
+
+1. **Data.** There's no dataset of UAE signs, so I used three public datasets that have speed limit signs: Mapillary, TT100K and Kaggle. UAE speed limit signs are a red circle with a black number, like in a lot of other countries, so I figured signs from other datasets would still help.
+2. **Making the labels match.** Each dataset labels its signs differently (the 80 km/h sign is called `regulatory--maximum-speed-limit-80--g1` in one, `pl80` in another and `Speed Limit 80` in the third). I wrote scripts to turn them all into one dataset with the same 11 classes: 20, 30, 40, 50, 60, 70, 80, 90, 100, 110 and 120 km/h. I left out 5 and 10 km/h because I haven't seen those in the UAE. That gave 11,974 images: 9,302 for training and 2,672 for checking the model as it trains.
+3. **Training.** I used YOLOv8s, starting from a model that was already trained on everyday objects (COCO), so it already knows basic shapes and only had to learn speed signs. It trained for 83 epochs (about 2.6 hours on my laptop's RTX 5060) and stopped by itself when it stopped improving.
+4. **Testing**, then the webcam program.
+
+The datasets (I only kept the speed limit signs from each):
+
+- [Mapillary Traffic Sign Dataset](https://www.mapillary.com/dataset/trafficsign): 3,837 images
+- [TT100K](https://docs.ultralytics.com/datasets/detect/tt100k): 4,845 images
+- [Kaggle Traffic Signs Detection](https://www.kaggle.com/datasets/pkdarabi/cardetection): 3,292 images
+- [ArTS](https://data.mendeley.com/datasets/4tznkn45mx/1): only used for testing, not for training
 
 ## Results
 
-Validation set: 2,672 images with 3,181 signs, taken from the Mapillary, TT100K and Kaggle data. This is the best epoch (73 of 83, training stopped early).
+On the 2,672 validation images, using the best epoch (73):
 
-| Precision | Recall | mAP@50 | mAP@50-95 |
-|---|---|---|---|
-| 0.884 | 0.689 | 0.808 | 0.666 |
-
-| Class | P | R | mAP@50 |
-|---|---|---|---|
-| speed_20 | 0.905 | 0.678 | 0.787 |
-| speed_30 | 0.804 | 0.624 | 0.765 |
-| speed_40 | 0.876 | 0.603 | 0.800 |
-| speed_50 | 0.835 | 0.605 | 0.778 |
-| speed_60 | 0.867 | 0.601 | 0.769 |
-| speed_70 | 0.962 | 0.701 | 0.809 |
-| speed_80 | 0.855 | 0.712 | 0.833 |
-| speed_90 | 0.887 | 0.582 | 0.699 |
-| speed_100 | 0.927 | 0.812 | 0.913 |
-| speed_110 | 0.857 | 0.815 | 0.819 |
-| speed_120 | 0.944 | 0.845 | 0.920 |
-
-Two test sets that were not used for training (output saved in `results/eval_results.txt`):
-
-| Test set | Metric | Result |
+| Score | Value | What it means |
 |---|---|---|
-| Kaggle test split (476 images, 513 signs) | mAP@50 | 0.980 |
-| ArTS, Saudi Arabia (78 of 127 images, see below) | top-1 accuracy | 83.3% (65/78) |
+| Precision | 0.884 | when it says there's a sign, it's right about 88% of the time |
+| Recall | 0.689 | it finds about 69% of the real signs |
+| mAP@50 | 0.808 | the usual score for detection models, 1.0 would be perfect |
 
-The Kaggle score is high because that test split comes from the same collection as the Kaggle images I trained on, so I treat it as a check that the data pipeline works, not as a real measure. The validation score above is the one I trust more.
+I also tested on two sets of photos it didn't train on (output saved in `results/eval_results.txt`):
 
-ArTS is a Saudi dataset with one sign per photo. Many of its signs write the number in Arabic numerals (٣٠, ٤٠, ١٠٠), which the model never saw in training, and the UAE signs I looked at on Google Street View all use normal numerals. So I went through the 127 speed limit test images and took out the 49 where the number is only written in Arabic numerals, which leaves 78. The model gets 65 of those 78 right (83.3%). By class: 30 km/h 26/26, 40 km/h 12/16, 50 km/h 15/18, 80 km/h 11/16, 60 km/h 1/2. There are no 100 km/h images left, so 60 and 100 are basically untested. I have no labelled UAE photos, so how well it works on UAE roads is not measured.
+- **Kaggle test split: mAP@50 of 0.98.** This is high because that split comes from the same collection as the Kaggle images I trained on, so I don't treat it as a proper test.
+- **ArTS (Saudi Arabia): 83.3% (65 right out of 78).** Each ArTS photo has one sign, and I check whether the model's most confident box has the right speed. A lot of ArTS signs write the number in Arabic numerals (٣٠, ٤٠, ١٠٠). The signs I looked at on Google Street View in the UAE use normal numbers, so I went through the 127 speed limit photos and took out the 49 where the number is only in Arabic numerals. When I first ran it on all of them, most of the mistakes were on those photos. After that, 30 km/h got 26/26, 40 got 12/16, 50 got 15/18 and 80 got 11/16. 60 only has 2 photos left and 100 has none, so this test says nothing about those two.
 
-## How it works
+## Training pictures
 
-### Data
+These are in the `results` folder.
 
-| Source | Images used | What I did |
-|---|---|---|
-| [Mapillary Traffic Sign Dataset](https://www.mapillary.com/dataset/trafficsign) | 3,837 | Street photos with one JSON file per image. Converted to YOLO format, speed limits only |
-| [TT100K](https://docs.ultralytics.com/datasets/detect/tt100k) | 4,845 | Only the speed limit signs (`pl*` classes). Only images that contain one are downloaded |
-| [Kaggle Traffic Signs Detection](https://www.kaggle.com/datasets/pkdarabi/cardetection) | 3,292 | Speed limits only, the traffic light and stop classes are dropped. Its test folder is kept for `evaluate.py` |
+**Training graphs** (`results.png`). The loss graphs (how wrong the model is) go down, and the precision, recall and mAP graphs go up and mostly flatten out near the end. That's why training stopped at epoch 83.
 
-That is 11,974 images: 9,302 for training and 2,672 for validation. The three datasets name their classes differently (`regulatory--maximum-speed-limit-80--g1`, `pl80`, `Speed Limit 80`) so `build_dataset.py` takes the number out of each name and maps it onto the same 11 classes. I left out 5 and 10 km/h because they aren't used in the UAE.
+![training graphs](results/results.png)
 
-[ArTS](https://data.mendeley.com/datasets/4tznkn45mx/1) is only used for testing, never for training.
+**Confusion matrix** (`confusion_matrix_normalized.png`). Each column is a real sign and each row is what the model said, so the diagonal is the right answers (0.72 means 72%). The bottom row (background) is signs it missed, the right column is false alarms, and the other numbers are mix-ups, for example 14% of the real 110 km/h signs were called 100.
 
-### Training
+![confusion matrix](results/confusion_matrix_normalized.png)
 
-YOLOv8s starting from the pretrained COCO weights, 640 px images, batch size 32, up to 100 epochs, stopping if there is no improvement for 10 epochs. It stopped at epoch 83 and took about 2.6 hours on an RTX 5060 laptop GPU.
+**Precision-recall curve** (`BoxPR_curve.png`). One line per speed, and the closer a line stays to the top right the better. The number in the legend is that speed's mAP@50. 100 and 120 do best (0.91 and 0.92) and 90 does worst (0.70).
 
-### Inference
+![precision recall curve](results/BoxPR_curve.png)
 
-`inference.py` runs the model on every webcam frame. It draws boxes around the signs and shows the current speed limit in a LIMIT box in the top left. The model sometimes reads a sign wrongly for a frame or two (a 60 sign read as 50, for example), so the number shown is the most common reading out of the last 15 detections. The number stays on screen for 2 seconds after the sign has gone and then disappears.
+## The webcam program
 
-The settings are at the top of the file: `CAMERA` (I use 1 for an external webcam, 0 is usually the laptop one), `CONFIDENCE` (0.65), `SMOOTHING_FRAMES` (15) and `LIMIT_SECONDS` (2). `CAMERA` can also be the path to a video file.
+`inference.py` runs the model on every frame from the camera, draws a box around each sign it finds and shows the current speed limit in the LIMIT box in the top left.
+
+![the inference window](results/demo-img.png)
+
+The model sometimes reads a sign wrongly for a frame or two (a 60 sign read as 50, for example), so I made the number shown the most common reading out of the last 15 detections. One wrong frame then gets outvoted and doesn't change the number. The number stays on screen for 2 seconds after the sign has gone and then disappears.
+
+The settings are at the top of the file: `CAMERA` (0 is the default camera, change it if you have more than one, or put the path of a video file), `CONFIDENCE` (0.65, detections the model is less sure about are ignored), `SMOOTHING_FRAMES` (15) and `LIMIT_SECONDS` (2).
 
 ## Running it
 
@@ -68,9 +68,9 @@ pip install -r requirements.txt
 python inference.py
 ```
 
-That uses the trained model in `models/best.pt`. Press q to quit.
+This uses the trained model in `models/best.pt`. Press q to quit.
 
-To rebuild the dataset and train again, the data goes in a `data` folder in the project (it is ignored by git):
+To make the dataset and train again, the data goes in a `data` folder in the project (git ignores it):
 
 ```
 data/
@@ -80,46 +80,49 @@ data/
     arts/            images/ with the ArTS test images, and the test labels as a csv
 ```
 
-The TT100K image links in the ndjson file only work for a while, so export a new one if the downloads fail. The ArTS labels come as an Excel file, I saved the test one as a csv with no header row.
-
 Then run these in order:
 
 1. `python convert_mapillary.py` makes `data/mapillary_yolo`
-2. `python build_dataset.py` makes `data/speed_dataset` (downloading the TT100K images takes a while)
+2. `python build_dataset.py` makes `data/speed_dataset` (it downloads the TT100K images, which takes a while)
 3. `python train.py` saves the results in `runs/detect/speed_limit_detector`
-4. `python evaluate.py` tests the model in `models/best.pt` and writes `results/eval_results.txt`
+4. `python evaluate.py` tests `models/best.pt` and writes `results/eval_results.txt`
 
-The scripts stop if an output folder already exists, so delete it before running a step again. `evaluate.py` skips any ArTS csv row whose image isn't in `data/arts/images`, which is how I left out the Arabic numeral signs: I took those images out of the folder.
+Some things to know:
 
-## Limitations
+- The TT100K image links in the ndjson file stop working after a while. If the downloads fail, export a new file.
+- The ArTS labels come as an Excel file. I saved the test one as a csv with no header row.
+- The scripts stop if their output folder already exists, so delete it before running a step again.
+- `evaluate.py` skips any ArTS csv row whose image isn't in `data/arts/images`. That's how I left out the Arabic numeral photos: I took them out of that folder.
 
-- Recall is 0.69. For 30 to 60 km/h and 90 km/h it is 0.58 to 0.62, and for 100 to 120 km/h it is 0.81 to 0.85. From the confusion matrix, about 10-17% of the signs from 20 to 90 km/h are not detected at all, and another 10-20% are read as a different speed. I think the smaller urban signs are harder, but I haven't checked that.
-- Speeds next to each other get mixed up: about 10% of 50 km/h signs are read as 40 and about 7% of 80 km/h signs as 60. The smoothing hides one-off mistakes but not a sign that is read wrongly the whole time.
-- It has never seen Arabic numerals.
-- None of the training images are from the UAE.
-- It only knows speed limits, so a different red circle sign could be read as one.
-- It's a student project, don't rely on it when driving.
+## What it gets wrong
+
+- **It misses signs and mixes up speeds.** Looking at the confusion matrix for 20 to 90 km/h, it misses 10 to 17% of the signs completely and reads another 15 to 25% as a different speed. The biggest mix-ups are 110 read as 100 (14%), 90 read as 80 (11%) and 50 read as 40 (10%).
+- **It's better at 100 and 120 than at the other speeds** (see the precision-recall curve).
+- **It doesn't do well on Arabic numerals** (see the ArTS results above).
+- **I don't have labelled photos from UAE roads**, so I don't know how well it really does there. I've only watched it on drive videos.
+- **I haven't tried it on other kinds of signs**, only speed limits.
+- It's a hobby project, so don't rely on it while driving.
 
 ## What didn't work
 
-- My first model tried to recognise 79 types of sign and only got about 0.28 mAP@50. Many classes had few images and several were red circles that look almost the same. Using just speed limits, more data from three sources and YOLOv8s brought it up to 0.81.
-- I tried fine-tuning that model on TT100K afterwards. It looked better on its own validation images but was worse on the original validation set, because it had overfitted to TT100K's photos. So I merged all the sources first and trained once.
+- My first model tried to recognise 79 types of sign and only got about 0.28 mAP@50. I think that's because a lot of the classes only had a few images. Using just speed limits, more data from three sources and YOLOv8s got it to 0.81.
+- I tried fine-tuning that model on TT100K afterwards. It scored better on its own validation images but worse on the original ones (0.276 down to 0.251), probably because it got too used to TT100K's photos. So I combined all the datasets first and trained once.
 
-## Project files
+## Ideas for later
+
+- Record my own photos and videos on UAE roads and label some of them to use as a proper test.
+- Add more examples of the speeds it misses most, and some signs with Arabic numerals.
+- Train YOLOv8n on the same data and compare it with YOLOv8s (I haven't done that).
+
+## Files
 
 ```
 models/best.pt           the trained YOLOv8s model
-results/                 training curves, confusion matrices, results.csv, eval_results.txt
-convert_mapillary.py     Mapillary JSON to YOLO format
+results/                 training graphs, confusion matrices, results.csv, eval_results.txt, demo gif and screenshot
+convert_mapillary.py     turns the Mapillary labels into YOLO format
 build_dataset.py         merges the three datasets
 train.py                 training
 evaluate.py              Kaggle and ArTS tests
 inference.py             webcam program
 requirements.txt
 ```
-
-## Licences and credits
-
-TT100K is CC BY-NC 2.0 (non-commercial) and the model was trained on it, so the model is for non-commercial use. The Kaggle dataset is CC BY 4.0, see the Mapillary and ArTS pages for their terms. None of the datasets are included here. YOLOv8 comes from Ultralytics, which uses the AGPL-3.0 licence.
-
-Datasets: Mapillary Traffic Sign Dataset, TT100K (Tsinghua University and Tencent), Traffic Signs Detection by P. K. Darabi (Kaggle), ArTS Arabic Traffic Sign Dataset (Mendeley Data).
